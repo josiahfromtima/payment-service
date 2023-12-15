@@ -66,6 +66,7 @@ public class CustomerBankDetailService {
                         .flatMap(customerBankDetail -> {
                             CustomerBankDetail modifiedRecord = CustomerBankDetailConverter.mapToEntity(detailRecord);
                             modifiedRecord.setId(customerBankDetail.getId());
+                            modifiedRecord.setPublicId(publicId);
                             return detailRepository.save(modifiedRecord);
                         })
                 .map(CustomerBankDetailConverter::mapToRecord)
