@@ -15,6 +15,7 @@ public class ClientError {
     @SerializedName("error_description")
     private String errorDescription;
     private String error;
+    private String message;
     @JsonProperty("error_uri")
     @SerializedName("error_uri")
     private String errorUri;

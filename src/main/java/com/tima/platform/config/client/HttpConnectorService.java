@@ -15,6 +15,7 @@ import reactor.core.publisher.Mono;
 import reactor.netty.http.client.HttpClient;
 
 import java.util.Map;
+import java.util.Objects;
 
 import static com.tima.platform.exception.ApiErrorHandler.handleOnErrorResume;
 import static jakarta.ws.rs.core.MediaType.APPLICATION_JSON;
@@ -83,9 +84,10 @@ public class HttpConnectorService {
                 .bodyToMono(returnType);
     }
 
-    public <T> Mono<T> get(String endpoint, Class<T> returnType) {
+    public <T> Mono<T> get(String endpoint, Map<String, String> headers, Class<T> returnType) {
         return webClient.get()
                 .uri(endpoint)
+                .headers(httpHeaders -> headers.forEach(httpHeaders::set)  )
                 .retrieve()
                 .onStatus(HttpStatusCode::is4xxClientError, this::handleClientError)
                 .onStatus(HttpStatusCode::is5xxServerError, this::handleClientError)
@@ -116,6 +118,8 @@ public class HttpConnectorService {
                 .flatMap( s -> {
                     log.error("{}", s);
                     ClientError clientError = new Gson().fromJson(s, ClientError.class);
+                    if(Objects.isNull(clientError.getErrorDescription()))
+                        clientError.setErrorDescription(clientError.getMessage());
                     return handleOnErrorResume(new AppException(clientError.getErrorDescription()), BAD_REQUEST.value());
                 });
     }

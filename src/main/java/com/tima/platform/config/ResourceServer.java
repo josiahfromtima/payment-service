@@ -40,6 +40,9 @@ public class ResourceServer {
             "/v1/banks",
             "/v1/banks/**",
             "/v1/bank/customers",
+            "/v1/methods/types",
+            "/v1/methods/_public",
+            "/v1/payment/webhook",
             // other public endpoints of your API may be appended to this array
     };
 }

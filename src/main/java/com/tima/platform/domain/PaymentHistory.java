@@ -1,5 +1,6 @@
 package com.tima.platform.domain;
 
+import com.tima.platform.model.constant.StatusType;
 import com.tima.platform.util.AppUtil;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -32,9 +33,11 @@ public class PaymentHistory implements Serializable, Persistable<Integer> {
     private Instant transactionDate;
     private String reference;
     private BigDecimal amount;
+    private BigDecimal balance;
     private String status;
     private String publicId;
     private String type;
+    private String name;
     private Instant createdOn;
 
     @Override

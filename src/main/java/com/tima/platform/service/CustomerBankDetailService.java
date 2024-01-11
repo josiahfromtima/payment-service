@@ -6,6 +6,8 @@ import com.tima.platform.exception.AppException;
 import com.tima.platform.model.api.AppResponse;
 import com.tima.platform.model.api.response.CustomerBankDetailRecord;
 import com.tima.platform.repository.CustomerBankDetailRepository;
+import com.tima.platform.service.helper.PaymentProviderService;
+import com.tima.platform.util.AppError;
 import com.tima.platform.util.AppUtil;
 import com.tima.platform.util.LoggerHelper;
 import lombok.RequiredArgsConstructor;
@@ -28,10 +30,10 @@ import static org.springframework.http.HttpStatus.BAD_REQUEST;
 public class CustomerBankDetailService {
     private final LoggerHelper log = LoggerHelper.newInstance(CustomerBankDetailService.class.getName());
     private final CustomerBankDetailRepository detailRepository;
+    private final PaymentProviderService providerService;
 
     private static final String CUSTOMER_MSG = "Customer Bank Detail request executed successfully";
     private static final String INVALID_CUSTOMER = "The Customer Bank Detail publicId is invalid";
-    private static final String ERROR_MSG = "The Customer Bank Detail record mutation could not be performed";
 
     @PreAuthorize(ADMIN)
     public Mono<AppResponse> getCustomerBankDetails() {
@@ -53,10 +55,12 @@ public class CustomerBankDetailService {
 
     public Mono<AppResponse> addCustomerDetails(CustomerBankDetailRecord detailRecord) {
         log.info("Adding new Customer Bank Detail Record ");
-        return detailRepository.save(CustomerBankDetailConverter.mapToEntity(detailRecord))
+        return providerService.createOrUpdateRecipient(CustomerBankDetailConverter.mapToEntity(detailRecord))
+                .flatMap(detailRepository::save)
                 .map(CustomerBankDetailConverter::mapToRecord)
                 .map(customerRecords -> AppUtil.buildAppResponse(customerRecords, CUSTOMER_MSG))
-                .onErrorResume(throwable -> handleOnErrorResume(new AppException(ERROR_MSG), BAD_REQUEST.value()));
+                .onErrorResume(t ->
+                        handleOnErrorResume(new AppException(AppError.massage(t.getMessage())), BAD_REQUEST.value()));
     }
 
     @PreAuthorize(ADMIN_BRAND_INFLUENCER)
@@ -67,11 +71,14 @@ public class CustomerBankDetailService {
                             CustomerBankDetail modifiedRecord = CustomerBankDetailConverter.mapToEntity(detailRecord);
                             modifiedRecord.setId(customerBankDetail.getId());
                             modifiedRecord.setPublicId(publicId);
-                            return detailRepository.save(modifiedRecord);
+                            return Mono.just(modifiedRecord);
                         })
+                .flatMap(providerService::createOrUpdateRecipient)
+                .flatMap(detailRepository::save)
                 .map(CustomerBankDetailConverter::mapToRecord)
                 .map(customerRecords -> AppUtil.buildAppResponse(customerRecords, CUSTOMER_MSG))
-                .onErrorResume(throwable -> handleOnErrorResume(new AppException(ERROR_MSG), BAD_REQUEST.value()));
+                .onErrorResume(t ->
+                        handleOnErrorResume(new AppException(AppError.massage(t.getMessage())), BAD_REQUEST.value()));
     }
 
     @PreAuthorize(ADMIN)
@@ -79,13 +86,13 @@ public class CustomerBankDetailService {
         log.info("Deleting Customer Bank Detail Record ", publicId);
         return validateDetail(publicId)
                 .flatMap(detailRepository::delete)
-                .then(Mono.fromCallable(() -> AppUtil.buildAppResponse("Customer (" + publicId + ") Deleted", CUSTOMER_MSG)));
+                .then(Mono.fromCallable(() ->
+                        AppUtil.buildAppResponse("Customer (" + publicId + ") Deleted", CUSTOMER_MSG)));
     }
 
     private Mono<CustomerBankDetail> validateDetail(String publicId) {
         return detailRepository.findByPublicId(publicId)
                 .switchIfEmpty(handleOnErrorResume(new AppException(INVALID_CUSTOMER), BAD_REQUEST.value()));
     }
-
 
 }

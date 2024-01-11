@@ -6,6 +6,7 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.springframework.data.annotation.Id;
+import org.springframework.data.annotation.Transient;
 import org.springframework.data.domain.Persistable;
 import org.springframework.data.relational.core.mapping.Table;
 
@@ -33,7 +34,11 @@ public class CustomerBankDetail implements Serializable, Persistable<Integer> {
     private String accountName;
     private String accountNumber;
     private String swiftCode;
+    private String subAccountCode;
+    private String response;
     private Instant createdOn;
+    @Transient
+    private String bankCode;
 
     @Override
     public boolean isNew() {

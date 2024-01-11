@@ -21,6 +21,7 @@ public class CustomerBankDetailConverter {
                 .bankAddress(dto.bankAddress())
                 .accountName(dto.accountName())
                 .accountNumber(dto.accountNumber())
+                .bankCode(getOrDefault(dto.bankCode(), ""))
                 .currency(getOrDefault(dto.currency(), "NGN"))
                 .swiftCode(getOrDefault(dto.swiftCode(), ""))
                 .build();
@@ -35,6 +36,7 @@ public class CustomerBankDetailConverter {
                 .accountNumber(entity.getAccountNumber())
                 .currency(entity.getCurrency())
                 .swiftCode(entity.getSwiftCode())
+                .createdOn(entity.getCreatedOn())
                 .build();
     }
 

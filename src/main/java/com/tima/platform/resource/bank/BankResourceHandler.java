@@ -1,4 +1,4 @@
-package com.tima.platform.resource;
+package com.tima.platform.resource.bank;
 
 import com.tima.platform.config.AuthTokenConfig;
 import com.tima.platform.model.api.ApiResponse;

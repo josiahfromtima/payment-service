@@ -30,6 +30,7 @@ public class PaymentMethod implements Serializable, Persistable<Integer> {
     private String apiKey;
     private String initiatePaymentUrl;
     private String verifyPaymentUrl;
+    private String type;
     private Instant createdOn;
 
     @Override
