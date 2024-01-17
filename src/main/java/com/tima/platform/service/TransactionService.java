@@ -10,12 +10,14 @@ import com.tima.platform.model.api.AppResponse;
 import com.tima.platform.model.api.request.InitiateContractPayment;
 import com.tima.platform.model.api.request.ManualTransferRecord;
 import com.tima.platform.model.api.request.PaymentRequest;
+import com.tima.platform.model.api.request.paystack.InitializeCharge;
 import com.tima.platform.model.api.request.paystack.InitiateTransfer;
 import com.tima.platform.model.api.response.paystack.PaystackVerifyResponse;
 import com.tima.platform.model.api.response.paystack.TransferRecord;
 import com.tima.platform.model.constant.StatusType;
 import com.tima.platform.repository.CustomerBankDetailRepository;
 import com.tima.platform.repository.InfluencerPaymentContractRepository;
+import com.tima.platform.service.card.UserSavedCardService;
 import com.tima.platform.service.helper.PaymentProviderService;
 import com.tima.platform.util.AppUtil;
 import com.tima.platform.util.LoggerHelper;
@@ -31,8 +33,7 @@ import java.time.Instant;
 import java.util.Objects;
 
 import static com.tima.platform.exception.ApiErrorHandler.handleOnErrorResume;
-import static com.tima.platform.model.constant.StatusType.COMPLETED;
-import static com.tima.platform.model.constant.StatusType.PARTIAL;
+import static com.tima.platform.model.constant.StatusType.*;
 import static com.tima.platform.model.security.TimaAuthority.ADMIN_BRAND;
 import static org.springframework.http.HttpStatus.BAD_REQUEST;
 
@@ -50,6 +51,7 @@ public class TransactionService {
     private final CustomerBankDetailRepository detailRepository;
     private final PaymentHistoryService historyService;
     private final InfluencerPaymentLogService paymentLogService;
+    private final UserSavedCardService cardService;
 
     private static final String TRANSACTION_SOURCE = "balance";
     private static final String TRANSACTION_REASON = "Influencer Contract Payment:";
@@ -87,21 +89,13 @@ public class TransactionService {
     }
     @PreAuthorize(ADMIN_BRAND)
     public Mono<AppResponse> verifyTransaction(String reference) {
-        return providerService.verifyTransaction(reference)
+        return checkTransactionStatus(reference)
+                .flatMap(b -> (!b) ? providerService.verifyTransaction(reference) :
+                        handleOnErrorResume(new AppException("Payment Was Successful"), BAD_REQUEST.value()))
                 .flatMap(response -> build(response, reference))
-                .flatMap(aggregate -> {
-                    PaymentHistory found = aggregate.getT2();
-                    if(aggregate.getT1().data().gatewayResponse().equalsIgnoreCase("successful") ||
-                            aggregate.getT1().data().gatewayResponse().equalsIgnoreCase("approved")) {
-                        found.setPaymentResponse(json(aggregate.getT1().data()));
-                        found.setStatus(StatusType.SUCCESS.name());
-                    }else {
-                        found.setPaymentResponse(json(aggregate.getT1().data()));
-                        found.setStatus(StatusType.FAILED.name());
-                    }
-                    return Mono.just(found);
-                }).flatMap(historyService::updatePaymentHistory)
-                .map(PaymentHistoryConverter::mapToRecord)
+                .flatMap(aggregate -> updateResponse(aggregate.getT1(), aggregate.getT2()))
+                .flatMap(historyService::updatePaymentHistory)
+                .flatMap(cardService::storeCard)
                 .map(r -> AppUtil.buildAppResponse(r, TRANSACTION_MSG));
     }
 
@@ -122,6 +116,25 @@ public class TransactionService {
                 .doOnNext(history -> log.info("Done updating the payment history"))
                 .flatMap(history -> processBeneficiary(history, transferRecord.contractId()))
                 .map(r -> AppUtil.buildAppResponse(r, TRANSACTION_MSG));
+    }
+
+    public Mono<AppResponse> initiateCharge(String id, PaymentRequest request) {
+        log.info("Charging User Card ", id, request);
+        return buildHistory(request, id)
+                .flatMap(historyService::addPaymentHistory)
+                .flatMap(history -> cardService.getCard(id)
+                        .map(card -> InitializeCharge.builder()
+                                .email(card.email())
+                                .authCode(card.authCode())
+                                .reference(history.getReference())
+                                .amount(history.getAmount().multiply(new BigDecimal(100) ))
+                                .build())
+                        .flatMap(providerService::initializeCharge)
+                        .flatMap(response -> updateResponse(response, history))
+                )
+                .flatMap(historyService::updatePaymentHistory)
+                .map(PaymentHistoryConverter::mapToRecord)
+                .map(charge -> AppUtil.buildAppResponse(charge, TRANSACTION_MSG));
     }
 
 
@@ -211,9 +224,30 @@ public class TransactionService {
                         .type("PAYMENT")
                 .build() );
     }
+
+    private Mono<PaymentHistory> updateResponse(PaystackVerifyResponse response, PaymentHistory history) {
+        log.info(response.data());
+        if(response.data().gatewayResponse().equalsIgnoreCase("successful") ||
+                response.data().gatewayResponse().equalsIgnoreCase("approved")) {
+            history.setPaymentResponse(json(response.data()));
+            history.setStatus(StatusType.SUCCESS.name());
+            return Mono.just(history);
+        }else {
+            history.setPaymentResponse(json(response.data()));
+            history.setStatus(StatusType.FAILED.name());
+            return Mono.just(history);
+        }
+    }
     private Mono<Tuple2<PaystackVerifyResponse, PaymentHistory>>
                                 build(PaystackVerifyResponse response, String reference) {
         return Mono.zip(Mono.just(response), historyService.getPaymentHistory(reference, StatusType.PENDING));
+    }
+
+    private Mono<Boolean> checkTransactionStatus(String reference) {
+        return historyService.getPaymentHistory(reference)
+                .map(history -> history.getStatus().equalsIgnoreCase(SUCCESS.name()))
+                .switchIfEmpty(handleOnErrorResume(
+                        new AppException("Invalid Reference"), BAD_REQUEST.value()));
     }
 
     private Mono<InfluencerTransaction> build(InfluencerPaymentContract contract, PaymentHistory history) {

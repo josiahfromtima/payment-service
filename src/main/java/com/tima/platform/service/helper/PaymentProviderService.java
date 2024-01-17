@@ -5,6 +5,7 @@ import com.tima.platform.domain.CustomerBankDetail;
 import com.tima.platform.model.api.AppResponse;
 import com.tima.platform.model.api.request.PaymentRequest;
 import com.tima.platform.model.api.request.paystack.CreateTransferRecipient;
+import com.tima.platform.model.api.request.paystack.InitializeCharge;
 import com.tima.platform.model.api.request.paystack.InitiateTransfer;
 import com.tima.platform.model.api.request.paystack.PaystackRequest;
 import com.tima.platform.model.api.response.paystack.PaystackInitializeResponse;
@@ -54,6 +55,9 @@ public class PaymentProviderService {
     @Value("${paystack.callback.url}")
     private String callbackUrl;
 
+    @Value("${paystack.charge.url}")
+    private String chargeUrl;
+
     public Mono<CustomerBankDetail> createOrUpdateRecipient(CustomerBankDetail customer) {
         log.info("Creating new Customer Recipient Account ", customer);
         if(checkCurrency(customer.getCurrency(), "Naira") || checkCurrency(customer.getCurrency(), "NGN"))
@@ -89,6 +93,14 @@ public class PaymentProviderService {
                         connectorService.post(paymentMethod.getInitiatePaymentUrl(),
                                 toJson(buildRequest(request, reference)),
                                 headers(paymentMethod.getApiKey()), PaystackInitializeResponse.class)
+                );
+    }
+    public Mono<PaystackVerifyResponse> initializeCharge(InitializeCharge request) {
+        log.info("Initiated Charge ", request);
+        return methodRepository.findByNameAndType(providerName, parseStatus(accountType).name())
+                .flatMap(paymentMethod ->
+                        connectorService.post(chargeUrl, toJson(request),
+                                headers(paymentMethod.getApiKey()), PaystackVerifyResponse.class)
                 );
     }
 

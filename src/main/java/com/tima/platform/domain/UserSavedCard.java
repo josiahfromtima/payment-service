@@ -33,7 +33,7 @@ public class UserSavedCard implements Serializable, Persistable<Integer> {
     private String response;
     private String type;
     private String cardNo;
-    private Boolean defaultCard;
+    private boolean defaultCard;
     private Instant createdOn;
 
     @Override

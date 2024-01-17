@@ -22,8 +22,11 @@ public class TransactionResourceConfig {
     public static final String TRANSFER = TRANSACTION_BASE + "/transfer";
     public static final String PAYMENT = TRANSACTION_BASE + "/payment";
     public static final String VERIFY_PAYMENT = API_V1_URL + "/verify/{reference}";
-
     public static final String MANUAL_TRANSFER = TRANSACTION_BASE + "/manual/transfer";
+    public static final String GET_CARDS_BY_USER_ID = API_V1_URL + "/cards";
+    public static final String DELETE_CARD = API_V1_URL + "/cards";
+    public static final String UPDATE_CARDS_DEFAULT = API_V1_URL + "/cards/default";
+    public static final String CHARGE_DEFAULT_CARD = API_V1_URL + "/cards/default/charge";
 
     @Bean
     public RouterFunction<ServerResponse> transactionEndpointHandler(TransactionResourceHandler handler) {
@@ -35,6 +38,13 @@ public class TransactionResourceConfig {
                 .POST(PAYMENT, accept(MediaType.APPLICATION_JSON)
                         .and(contentType(MediaType.APPLICATION_JSON)), handler::initiatePay)
                 .GET(VERIFY_PAYMENT, accept(MediaType.APPLICATION_JSON), handler::verifyPay)
+                .GET(GET_CARDS_BY_USER_ID, accept(MediaType.APPLICATION_JSON), handler::getCards)
+                .DELETE(DELETE_CARD, accept(MediaType.APPLICATION_JSON)
+                        .and(contentType(MediaType.APPLICATION_JSON)), handler::removeCard)
+                .PUT(UPDATE_CARDS_DEFAULT, accept(MediaType.APPLICATION_JSON)
+                        .and(contentType(MediaType.APPLICATION_JSON)), handler::setDefaultCard)
+                .POST(CHARGE_DEFAULT_CARD, accept(MediaType.APPLICATION_JSON)
+                        .and(contentType(MediaType.APPLICATION_JSON)), handler::chargeCard)
                 .build();
     }
 }
