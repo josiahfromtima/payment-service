@@ -27,6 +27,7 @@ import static com.tima.platform.model.api.ApiResponse.buildServerResponse;
 public class CallbackResourceHandler {
     LoggerHelper log = LoggerHelper.newInstance(CallbackResourceHandler.class.getName());
     private final PaymentCallbackService callbackService;
+    private static final String X_FORWARD_FOR = "X-Forwarded-For";
 
     /**
      *  This section marks the Callback activities
@@ -34,7 +35,7 @@ public class CallbackResourceHandler {
 
     public Mono<ServerResponse> paymentCallback(ServerRequest request)  {
         Mono<String> recordMono = request.bodyToMono(String.class);
-        log.info("Payment Callback Received", request.remoteAddress().orElse(null));
+        log.info("Payment Callback Received", request.headers().firstHeader(X_FORWARD_FOR));
         return recordMono
                 .map(callbackService::updatePayment)
                 .flatMap(ApiResponse::buildServerResponse);

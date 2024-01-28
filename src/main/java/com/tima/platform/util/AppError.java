@@ -23,5 +23,4 @@ public abstract class AppError {
         else if(error.contains(FORBIDDEN)) return error.split(FORBIDDEN)[1].replace("\"", "");
         else return DEFAULT_MSG;
     }
-
 }

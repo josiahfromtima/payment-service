@@ -32,6 +32,8 @@ public class TransactionResourceHandler {
     private final UserSavedCardService cardService;
     private final CustomValidator validator;
 
+    private static final String X_FORWARD_FOR = "X-Forwarded-For";
+
     /**
      *  This section marks the payment transaction activities
      */
@@ -39,7 +41,7 @@ public class TransactionResourceHandler {
     public Mono<ServerResponse> initiateTransfer(ServerRequest request)  {
         Mono<InitiateContractPayment> recordMono = request.bodyToMono(InitiateContractPayment.class)
                 .doOnNext(validator::validateEntries);
-        log.info("Initiate Transfer Requested", request.remoteAddress().orElse(null));
+        log.info("Initiate Transfer Requested", request.headers().firstHeader(X_FORWARD_FOR));
         return recordMono
                 .map(transactionService::initiateTransfer)
                 .flatMap(ApiResponse::buildServerResponse);
@@ -48,7 +50,7 @@ public class TransactionResourceHandler {
         Mono<JwtAuthenticationToken> jwtAuthToken = AuthTokenConfig.authenticatedToken(request);
         Mono<PaymentRequest> recordMono = request.bodyToMono(PaymentRequest.class)
                 .doOnNext(validator::validateEntries);
-        log.info("Initiate Payment Requested", request.remoteAddress().orElse(null));
+        log.info("Initiate Payment Requested", request.headers().firstHeader(X_FORWARD_FOR));
         return jwtAuthToken
                 .map(ApiResponse::getPublicIdFromToken)
                 .flatMap(id -> recordMono
@@ -58,7 +60,7 @@ public class TransactionResourceHandler {
 
     public Mono<ServerResponse> verifyPay(ServerRequest request)  {
         String reference = request.pathVariable("reference");
-        log.info("Verify Payment Requested", request.remoteAddress().orElse(null));
+        log.info("Verify Payment Requested", request.headers().firstHeader(X_FORWARD_FOR));
         return buildServerResponse(transactionService.verifyTransaction(reference));
     }
 
@@ -66,7 +68,7 @@ public class TransactionResourceHandler {
         Mono<ManualTransferRecord> recordMono = request.bodyToMono(ManualTransferRecord.class)
                 .doOnNext(validator::validateEntries)
                 .doOnNext(transferRecord ->  validator.validateEntries(transferRecord.paymentRecord()));
-        log.info("Save Manually Done Transfer Requested", request.remoteAddress().orElse(null));
+        log.info("Save Manually Done Transfer Requested", request.headers().firstHeader(X_FORWARD_FOR));
         return recordMono
                 .map(transactionService::saveBelatedTransfer)
                 .flatMap(ApiResponse::buildServerResponse);
@@ -76,7 +78,7 @@ public class TransactionResourceHandler {
         Mono<JwtAuthenticationToken> jwtAuthToken = AuthTokenConfig.authenticatedToken(request);
         Mono<PaymentRequest> recordMono = request.bodyToMono(PaymentRequest.class)
                 .doOnNext(validator::validateEntries);
-        log.info("Initiate Charge Card Requested", request.remoteAddress().orElse(null));
+        log.info("Initiate Charge Card Requested", request.headers().firstHeader(X_FORWARD_FOR));
         return jwtAuthToken
                 .map(ApiResponse::getPublicIdFromToken)
                 .flatMap(id -> recordMono
@@ -86,7 +88,7 @@ public class TransactionResourceHandler {
 
     public Mono<ServerResponse> getCards(ServerRequest request)  {
         Mono<JwtAuthenticationToken> jwtAuthToken = AuthTokenConfig.authenticatedToken(request);
-        log.info("Get Saved Cards Requested", request.remoteAddress().orElse(null));
+        log.info("Get Saved Cards Requested", request.headers().firstHeader(X_FORWARD_FOR));
         return jwtAuthToken
                 .map(ApiResponse::getPublicIdFromToken)
                 .map(cardService::getCards)
@@ -95,7 +97,7 @@ public class TransactionResourceHandler {
     public Mono<ServerResponse> removeCard(ServerRequest request)  {
         Mono<UserSavedCardRecord> transactionMono = request.bodyToMono(UserSavedCardRecord.class);
         Mono<JwtAuthenticationToken> jwtAuthToken = AuthTokenConfig.authenticatedToken(request);
-        log.info("Remove Card Requested", request.remoteAddress().orElse(null) );
+        log.info("Remove Card Requested", request.headers().firstHeader(X_FORWARD_FOR) );
         return jwtAuthToken
                 .map(ApiResponse::getPublicIdFromToken)
                 .flatMap(id -> transactionMono.map(card ->
@@ -106,7 +108,7 @@ public class TransactionResourceHandler {
     public Mono<ServerResponse> setDefaultCard(ServerRequest request)  {
         Mono<UserSavedCardRecord> transactionMono = request.bodyToMono(UserSavedCardRecord.class);
         Mono<JwtAuthenticationToken> jwtAuthToken = AuthTokenConfig.authenticatedToken(request);
-        log.info("Change Default Card Requested", request.remoteAddress().orElse(null) );
+        log.info("Change Default Card Requested", request.headers().firstHeader(X_FORWARD_FOR) );
         return jwtAuthToken
                 .map(ApiResponse::getPublicIdFromToken)
                 .flatMap(id -> transactionMono.map(card ->

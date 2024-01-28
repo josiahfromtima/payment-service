@@ -27,18 +27,19 @@ public class BankResourceHandler {
 
     private final BankService bankService;
     private final CustomerBankDetailService customerService;
+    private static final String X_FORWARD_FOR = "X-Forwarded-For";
 
     /**
      *  This section marks the banks activities
      */
     public Mono<ServerResponse> getBanks(ServerRequest request)  {
-        log.info("Get Registered Banks Requested", request.remoteAddress().orElse(null));
+        log.info("Get Registered Banks Requested", request.headers().firstHeader(X_FORWARD_FOR));
         return buildServerResponse(bankService.getBanks());
     }
 
     public Mono<ServerResponse> getBankByCode(ServerRequest request)  {
         String codeOrName = request.pathVariable("codeOrName");
-        log.info("Get Registered Bank by code Requested", request.remoteAddress().orElse(null));
+        log.info("Get Registered Bank by code Requested", request.headers().firstHeader(X_FORWARD_FOR));
         return buildServerResponse(bankService.getBankByCodeOName(codeOrName));
     }
 
@@ -46,13 +47,13 @@ public class BankResourceHandler {
      *  This section marks the customer bank detail activities
      */
     public Mono<ServerResponse> getAllCustomerDetails(ServerRequest request)  {
-        log.info("Get All Customer Bank Detail Requested", request.remoteAddress().orElse(null));
+        log.info("Get All Customer Bank Detail Requested", request.headers().firstHeader(X_FORWARD_FOR));
         return buildServerResponse(customerService.getCustomerBankDetails());
     }
 
     public Mono<ServerResponse> getCustomerDetail(ServerRequest request)  {
         Mono<JwtAuthenticationToken> jwtAuthToken = AuthTokenConfig.authenticatedToken(request);
-        log.info("Get My Customer Bank Detail Requested", request.remoteAddress().orElse(null));
+        log.info("Get My Customer Bank Detail Requested", request.headers().firstHeader(X_FORWARD_FOR));
         return jwtAuthToken
                 .map(ApiResponse::getPublicIdFromToken)
                 .map(customerService::getDetailsByPublicId)
@@ -60,7 +61,7 @@ public class BankResourceHandler {
     }
     public Mono<ServerResponse> addCustomerDetail(ServerRequest request)  {
         Mono<CustomerBankDetailRecord> recordMono = request.bodyToMono(CustomerBankDetailRecord.class);
-        log.info("Add Customer Bank Detail Requested", request.remoteAddress().orElse(null));
+        log.info("Add Customer Bank Detail Requested", request.headers().firstHeader(X_FORWARD_FOR));
         return recordMono
                 .map(customerService::addCustomerDetails)
                 .flatMap(ApiResponse::buildServerResponse);
@@ -68,7 +69,7 @@ public class BankResourceHandler {
     public Mono<ServerResponse>  updateCustomerDetail(ServerRequest request)  {
         Mono<CustomerBankDetailRecord> recordMono = request.bodyToMono(CustomerBankDetailRecord.class);
         Mono<JwtAuthenticationToken> jwtAuthToken = AuthTokenConfig.authenticatedToken(request);
-        log.info("Update Customer Bank Detail Requested", request.remoteAddress().orElse(null));
+        log.info("Update Customer Bank Detail Requested", request.headers().firstHeader(X_FORWARD_FOR));
         return jwtAuthToken
                 .map(ApiResponse::getPublicIdFromToken)
                 .flatMap(publicId -> recordMono.map(detailRecord ->
@@ -77,7 +78,7 @@ public class BankResourceHandler {
     }
     public Mono<ServerResponse> deleteCustomerDetail(ServerRequest request)  {
         String publicId = request.pathVariable("publicId");
-        log.info("Delete Customer Bank Detail Requested", request.remoteAddress().orElse(null));
+        log.info("Delete Customer Bank Detail Requested", request.headers().firstHeader(X_FORWARD_FOR));
         return buildServerResponse(customerService.deleteCustomerDetails(publicId));
     }
 

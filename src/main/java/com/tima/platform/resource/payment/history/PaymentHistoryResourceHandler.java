@@ -27,18 +27,19 @@ import static com.tima.platform.model.api.ApiResponse.reportSettings;
 public class PaymentHistoryResourceHandler {
     LoggerHelper log = LoggerHelper.newInstance(PaymentHistoryResourceHandler.class.getName());
     private final PaymentHistoryService historyService;
+    private static final String X_FORWARD_FOR = "X-Forwarded-For";
 
     /**
      *  This section marks the payment dashboard/reports activities
      */
     public Mono<ServerResponse> getAllPaymentStatus(ServerRequest request)  {
-        log.info("Get Payment Statuses Requested", request.remoteAddress().orElse(null));
+        log.info("Get Payment Statuses Requested", request.headers().firstHeader(X_FORWARD_FOR));
         return buildServerResponse(historyService.getPaymentStatus());
     }
 
     public Mono<ServerResponse> getPaymentAggregateDashboard(ServerRequest request)  {
         Mono<JwtAuthenticationToken> jwtAuthToken = AuthTokenConfig.authenticatedToken(request);
-        log.info("Get Payment Aggregation Dashboard Requested", request.remoteAddress().orElse(null));
+        log.info("Get Payment Aggregation Dashboard Requested", request.headers().firstHeader(X_FORWARD_FOR));
         return jwtAuthToken
                 .map(ApiResponse::getToken)
                 .map(historyService::getPaymentTotals)
@@ -46,18 +47,18 @@ public class PaymentHistoryResourceHandler {
     }
 
     public Mono<ServerResponse> getPaymentHistories(ServerRequest request)  {
-        log.info("Get Payment Histories Requested ", request.remoteAddress().orElse(null));
+        log.info("Get Payment Histories Requested ", request.headers().firstHeader(X_FORWARD_FOR));
         return buildServerResponse(historyService.getPaymentHistories(reportSettings(request, false)));
     }
 
     public Mono<ServerResponse> getPaymentHistoryByDateRange(ServerRequest request)  {
-        log.info("Get Payment Histories By Date Range Requested ", request.remoteAddress().orElse(null));
+        log.info("Get Payment Histories By Date Range Requested ", request.headers().firstHeader(X_FORWARD_FOR));
         return buildServerResponse(historyService.getPaymentHistories(reportSettings(request, true)));
     }
 
     public Mono<ServerResponse> getPaymentHistoryByStatus(ServerRequest request) {
         String status = request.pathVariable("status");
-        log.info("Get Payment Histories By Status Requested ", request.remoteAddress().orElse(null));
+        log.info("Get Payment Histories By Status Requested ", request.headers().firstHeader(X_FORWARD_FOR));
         return buildServerResponse(
                 historyService.getPaymentHistoryByStatus(status, reportSettings(request, true)));
     }

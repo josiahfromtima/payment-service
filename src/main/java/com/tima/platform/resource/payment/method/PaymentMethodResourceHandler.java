@@ -23,18 +23,18 @@ import static com.tima.platform.model.api.ApiResponse.buildServerResponse;
 public class PaymentMethodResourceHandler {
     LoggerHelper log = LoggerHelper.newInstance(PaymentMethodResourceHandler.class.getName());
     private final PaymentMethodService paymentMethodService;
-    private final PaymentHistoryService historyService;
+    private static final String X_FORWARD_FOR = "X-Forwarded-For";
 
     /**
      *  This section marks the payment method activities
      */
     public Mono<ServerResponse> getMethodTypes(ServerRequest request)  {
-        log.info("Get Payment Method Type Requested", request.remoteAddress().orElse(null));
+        log.info("Get Payment Method Type Requested", request.headers().firstHeader(X_FORWARD_FOR));
         return buildServerResponse(paymentMethodService.getMethodTypes());
     }
 
     public Mono<ServerResponse> getPaymentMethodsPublic(ServerRequest request)  {
-        log.info("Get Payment Methods Requested (Public)", request.remoteAddress().orElse(null));
+        log.info("Get Payment Methods Requested (Public)", request.headers().firstHeader(X_FORWARD_FOR));
         return buildServerResponse(paymentMethodService.getPaymentMethods());
     }
 
@@ -42,24 +42,24 @@ public class PaymentMethodResourceHandler {
         String name = request.queryParam("name").orElse("");
         String type = request.queryParam("type").orElse("");
         if(!name.isEmpty() && !type.isEmpty()) {
-            log.info("Get Payment Method Requested", request.remoteAddress().orElse(null));
+            log.info("Get Payment Method Requested", request.headers().firstHeader(X_FORWARD_FOR));
             return buildServerResponse(paymentMethodService.getPaymentRecord(name, type));
         }else {
-            log.info("Get Payment Methods Requested (Admin)", request.remoteAddress().orElse(null));
+            log.info("Get Payment Methods Requested (Admin)", request.headers().firstHeader(X_FORWARD_FOR));
             return buildServerResponse(paymentMethodService.getPaymentMethodsByAdmin());
         }
     }
 
     public Mono<ServerResponse> addNewPaymentMethod(ServerRequest request)  {
         Mono<PaymentMethodRecord> recordMono = request.bodyToMono(PaymentMethodRecord.class);
-        log.info("Add New Payment Method Requested", request.remoteAddress().orElse(null));
+        log.info("Add New Payment Method Requested", request.headers().firstHeader(X_FORWARD_FOR));
         return recordMono
                 .map(paymentMethodService::addPaymentMethod)
                 .flatMap(ApiResponse::buildServerResponse);
     }
     public Mono<ServerResponse>  editPaymentMethod(ServerRequest request)  {
         Mono<PaymentMethodRecord> recordMono = request.bodyToMono(PaymentMethodRecord.class);
-        log.info("Update Payment Method Requested", request.remoteAddress().orElse(null));
+        log.info("Update Payment Method Requested", request.headers().firstHeader(X_FORWARD_FOR));
         return recordMono
                 .map(paymentMethodService::updatePaymentMethod)
                 .flatMap(ApiResponse::buildServerResponse);
@@ -67,7 +67,7 @@ public class PaymentMethodResourceHandler {
     public Mono<ServerResponse> deleteCPaymentMethod(ServerRequest request)  {
         String name = request.queryParam("name").orElse("");
         String type = request.queryParam("type").orElse("");
-        log.info("Delete Customer Bank Detail Requested", request.remoteAddress().orElse(null));
+        log.info("Delete Customer Bank Detail Requested", request.headers().firstHeader(X_FORWARD_FOR));
         return buildServerResponse(paymentMethodService.deletePaymentRecord(name, type));
     }
 
