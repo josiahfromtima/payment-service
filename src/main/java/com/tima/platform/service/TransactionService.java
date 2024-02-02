@@ -5,8 +5,10 @@ import com.tima.platform.domain.CustomerBankDetail;
 import com.tima.platform.domain.InfluencerPaymentContract;
 import com.tima.platform.domain.InfluencerTransaction;
 import com.tima.platform.domain.PaymentHistory;
+import com.tima.platform.event.AlertEvent;
 import com.tima.platform.exception.AppException;
 import com.tima.platform.model.api.AppResponse;
+import com.tima.platform.model.api.request.AlertRecord;
 import com.tima.platform.model.api.request.InitiateContractPayment;
 import com.tima.platform.model.api.request.ManualTransferRecord;
 import com.tima.platform.model.api.request.PaymentRequest;
@@ -14,11 +16,13 @@ import com.tima.platform.model.api.request.paystack.InitializeCharge;
 import com.tima.platform.model.api.request.paystack.InitiateTransfer;
 import com.tima.platform.model.api.response.paystack.PaystackVerifyResponse;
 import com.tima.platform.model.api.response.paystack.TransferRecord;
+import com.tima.platform.model.constant.AlertType;
 import com.tima.platform.model.constant.StatusType;
 import com.tima.platform.repository.CustomerBankDetailRepository;
 import com.tima.platform.repository.InfluencerPaymentContractRepository;
 import com.tima.platform.service.card.UserSavedCardService;
 import com.tima.platform.service.helper.PaymentProviderService;
+import com.tima.platform.util.AppError;
 import com.tima.platform.util.AppUtil;
 import com.tima.platform.util.LoggerHelper;
 import lombok.RequiredArgsConstructor;
@@ -29,6 +33,7 @@ import reactor.core.scheduler.Schedulers;
 import reactor.util.function.Tuple2;
 
 import java.math.BigDecimal;
+import java.text.DecimalFormat;
 import java.time.Instant;
 import java.util.Objects;
 
@@ -52,6 +57,7 @@ public class TransactionService {
     private final PaymentHistoryService historyService;
     private final InfluencerPaymentLogService paymentLogService;
     private final UserSavedCardService cardService;
+    private final AlertEvent alertEvent;
 
     private static final String TRANSACTION_SOURCE = "balance";
     private static final String TRANSACTION_REASON = "Influencer Contract Payment:";
@@ -76,6 +82,7 @@ public class TransactionService {
                 .flatMap(providerService::initiateTransfer)
                 .flatMap(appResponse -> historyService.updatePaymentHistory(
                         json(json(appResponse.getData()), TransferRecord.class)) )
+                .flatMap(history -> sendAlert(contractPayment.contractId(), history, AlertType.PAID))
                 .map(PaymentHistoryConverter::mapToRecord)
                 .map(r -> AppUtil.buildAppResponse(r, TRANSACTION_MSG));
     }
@@ -114,8 +121,12 @@ public class TransactionService {
                         StatusType.SUCCESS))
                 .flatMap(historyService::addPaymentHistory)
                 .doOnNext(history -> log.info("Done updating the payment history"))
-                .flatMap(history -> processBeneficiary(history, transferRecord.contractId()))
-                .map(r -> AppUtil.buildAppResponse(r, TRANSACTION_MSG));
+                .flatMap(history -> processBeneficiary(history, transferRecord.contractId())
+                        .flatMap(beneficiary -> sendAlert(transferRecord.contractId(), history, AlertType.RECEIVED))
+                        .flatMap(beneficiary -> sendAlert(transferRecord.contractId(), history, AlertType.PAID))
+                ).map(r -> AppUtil.buildAppResponse(r, TRANSACTION_MSG))
+                .onErrorResume(t ->
+                        handleOnErrorResume(new AppException(AppError.massage(t.getMessage())), BAD_REQUEST.value()));
     }
 
     public Mono<AppResponse> initiateCharge(String id, PaymentRequest request) {
@@ -262,6 +273,26 @@ public class TransactionService {
                 .balance(contract.getBalance().subtract(history.getAmount()))
                 .build() );
     }
+
+    private Mono<PaymentHistory> sendAlert(String contractId, PaymentHistory history, AlertType alertType) {
+        return contractRepository.findByContractId(contractId)
+                .flatMap(contract -> alertEvent.registerAlert(AlertRecord.builder()
+                        .userPublicId(AlertType.RECEIVED.name().equals(alertType.name()) ?
+                                history.getPublicId() : contract.getBrandPublicId())
+                        .title(alertType.getTitle(alertType.name(), contract.getCampaignName()))
+                        .message(alertType.getMessage(
+                                alertType.getType(),
+                                new DecimalFormat("#0.##").format(history.getAmount()),
+                                contract.getCampaignName(),
+                                AlertType.RECEIVED.name().equals(alertType.name()) ?
+                                                contract.getBrandName() : contract.getInfluencerName() ))
+                        .type(AlertType.PAYMENT.name())
+                        .typeStatus(alertType.name())
+                        .status("NEW")
+                        .build()))
+                .map(aBoolean -> history);
+    }
+
 
     private StatusType parseStatus(String status) {
         try {

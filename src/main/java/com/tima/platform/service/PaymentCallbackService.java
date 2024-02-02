@@ -3,10 +3,13 @@ package com.tima.platform.service;
 import com.tima.platform.domain.InfluencerPaymentContract;
 import com.tima.platform.domain.InfluencerTransaction;
 import com.tima.platform.domain.PaymentHistory;
+import com.tima.platform.event.AlertEvent;
 import com.tima.platform.exception.AppException;
 import com.tima.platform.model.api.AppResponse;
+import com.tima.platform.model.api.request.AlertRecord;
 import com.tima.platform.model.api.response.paystack.transfer.PaystackEventTransferResponse;
 import com.tima.platform.model.api.response.paystack.transfer.event.PaystackTransferEventResponse;
+import com.tima.platform.model.constant.AlertType;
 import com.tima.platform.repository.InfluencerPaymentContractRepository;
 import com.tima.platform.repository.PaymentHistoryRepository;
 import com.tima.platform.util.AppUtil;
@@ -16,6 +19,7 @@ import org.springframework.stereotype.Service;
 import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Schedulers;
 
+import java.text.DecimalFormat;
 import java.util.Objects;
 
 import static com.tima.platform.exception.ApiErrorHandler.handleOnErrorResume;
@@ -34,6 +38,7 @@ public class PaymentCallbackService {
     private final PaymentHistoryRepository historyRepository;
     private final InfluencerPaymentLogService paymentLogService;
     private final InfluencerPaymentContractRepository contractRepository;
+    private final AlertEvent alertEvent;
 
     private static final String PAYMENT_MSG = "The Payment and Recipient Details Updated";
 
@@ -73,7 +78,9 @@ public class PaymentCallbackService {
                                 contract.setBalance(contract.getBalance().subtract(history.getAmount()));
                                 if(contract.getBalance().longValue() <= 0 )
                                         contract.setStatus(COMPLETED.name());
-                                return contractRepository.save(contract);
+                                return contractRepository.save(contract)
+                                        .flatMap(savedContract ->
+                                                sendAlert(savedContract.getContractId(), history));
                         })
                 )
                 .map(contract -> AppUtil.buildAppResponse("Payment Updated", PAYMENT_MSG))
@@ -104,6 +111,23 @@ public class PaymentCallbackService {
             log.error(ex.getMessage());
             return "";
         }
+    }
+
+    private Mono<PaymentHistory> sendAlert(String contractId, PaymentHistory history) {
+        return contractRepository.findByContractId(contractId)
+                .flatMap(contract -> alertEvent.registerAlert(AlertRecord.builder()
+                        .userPublicId(history.getPublicId())
+                        .title(AlertType.RECEIVED.getTitle(AlertType.RECEIVED.name(), contract.getCampaignName()))
+                        .message(AlertType.RECEIVED.getMessage(
+                                AlertType.RECEIVED.getType(),
+                                new DecimalFormat("#0.##").format(history.getAmount()),
+                                contract.getCampaignName(),
+                                contract.getBrandName() ))
+                        .type(AlertType.PAYMENT.name())
+                        .typeStatus(AlertType.RECEIVED.name())
+                        .status("NEW")
+                        .build()))
+                .map(aBoolean -> history);
     }
     private String json(Object item) {
         return AppUtil.gsonInstance().toJson(item);
