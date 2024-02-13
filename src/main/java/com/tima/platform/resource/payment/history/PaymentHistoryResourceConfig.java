@@ -19,8 +19,7 @@ import static org.springframework.web.reactive.function.server.RouterFunctions.r
 public class PaymentHistoryResourceConfig {
     public static final String API_V1_URL = "/v1";
     public static final String PAYMENT_BASE = API_V1_URL + "/histories";
-//    public static final String CAMPAIGN_DASHBOARD = PAYMENT_BASE + "/campaign/dashboard";
-    public static final String PAYMENT_BY_DATE_RANGE = PAYMENT_BASE + "/date";
+    public static final String PAYMENT_BY_DATE_RANGE = PAYMENT_BASE + "/date/{status}";
     public static final String PAYMENT_STATUSES = API_V1_URL + "/statuses";
     public static final String GET_PAYMENT_BY_STATUS = PAYMENT_BASE + "/{status}";
 

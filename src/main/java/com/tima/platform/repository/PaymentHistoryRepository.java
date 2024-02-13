@@ -20,6 +20,7 @@ import static com.tima.platform.repository.projection.NativeSql.AGGREGATE_STATEM
  */
 public interface PaymentHistoryRepository extends ReactiveCrudRepository<PaymentHistory, Integer> {
     Flux<PaymentHistory> findAllBy(Pageable pageable);
+    Flux<PaymentHistory> findByCreatedOnBetweenAndStatus(Instant start, Instant end, String status, Pageable pageable);
     Mono<PaymentHistory> findByReference(String reference);
     Mono<PaymentHistory> findByReferenceAndStatus(String reference, String status);
     Flux<PaymentHistory> findByStatus(String status, Pageable pageable);

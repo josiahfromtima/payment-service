@@ -52,8 +52,10 @@ public class PaymentHistoryResourceHandler {
     }
 
     public Mono<ServerResponse> getPaymentHistoryByDateRange(ServerRequest request)  {
+        String status = request.pathVariable("status");
         log.info("Get Payment Histories By Date Range Requested ", request.headers().firstHeader(X_FORWARD_FOR));
-        return buildServerResponse(historyService.getPaymentHistories(reportSettings(request, true)));
+        return buildServerResponse(
+                historyService.getPaymentHistoriesByDateAndStatus(status, reportSettings(request, true)));
     }
 
     public Mono<ServerResponse> getPaymentHistoryByStatus(ServerRequest request) {

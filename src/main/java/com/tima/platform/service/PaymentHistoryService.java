@@ -52,8 +52,22 @@ public class PaymentHistoryService {
 
     @PreAuthorize(ADMIN_BRAND)
     public Mono<AppResponse> getPaymentHistories(ReportSettings settings) {
-        log.info("Getting ALl Payment Details Record with filter...");
+        log.info("Getting ALl Payment Details Record with pagination...");
         return historyRepository.findAllBy(setPage(settings))
+                .collectList()
+                .map(PaymentHistoryConverter::mapToRecords)
+                .map(paymentRecords -> AppUtil.buildAppResponse(paymentRecords, PAYMENT_MSG));
+    }
+
+    @PreAuthorize(ADMIN_BRAND)
+    public Mono<AppResponse> getPaymentHistoriesByDateAndStatus(String appStatus, ReportSettings settings) {
+        log.info("Getting All Payment Details Record with date range, status, and pagination ...");
+        StatusType status = parseStatus(appStatus);
+        if(Objects.isNull(status)) return handleOnErrorResume(new AppException(INVALID_STATUS), BAD_REQUEST.value());
+        return historyRepository.findByCreatedOnBetweenAndStatus(settings.getStart(),
+                        settings.getEnd(),
+                        status.name(),
+                        setPage(settings))
                 .collectList()
                 .map(PaymentHistoryConverter::mapToRecords)
                 .map(paymentRecords -> AppUtil.buildAppResponse(paymentRecords, PAYMENT_MSG));
