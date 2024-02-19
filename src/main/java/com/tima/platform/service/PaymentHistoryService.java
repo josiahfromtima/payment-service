@@ -4,12 +4,9 @@ import com.tima.platform.converter.PaymentHistoryConverter;
 import com.tima.platform.domain.PaymentHistory;
 import com.tima.platform.exception.AppException;
 import com.tima.platform.model.api.AppResponse;
-import com.tima.platform.model.api.response.BrandAggregatePaymentRecord;
-import com.tima.platform.model.api.response.PaymentAggregateTotal;
 import com.tima.platform.model.api.response.paystack.TransferRecord;
 import com.tima.platform.model.constant.StatusType;
 import com.tima.platform.repository.PaymentHistoryRepository;
-import com.tima.platform.service.helper.AgencyCampaignService;
 import com.tima.platform.util.AppError;
 import com.tima.platform.util.AppUtil;
 import com.tima.platform.util.LoggerHelper;
@@ -22,11 +19,11 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Mono;
 
-import java.math.BigDecimal;
 import java.util.Objects;
 
 import static com.tima.platform.exception.ApiErrorHandler.handleOnErrorResume;
-import static com.tima.platform.model.security.TimaAuthority.*;
+import static com.tima.platform.model.security.TimaAuthority.ADMIN_BRAND;
+import static com.tima.platform.model.security.TimaAuthority.ADMIN_BRAND_INFLUENCER;
 import static org.springframework.http.HttpStatus.BAD_REQUEST;
 
 /**
@@ -39,7 +36,6 @@ import static org.springframework.http.HttpStatus.BAD_REQUEST;
 public class PaymentHistoryService {
     private final LoggerHelper log = LoggerHelper.newInstance(PaymentHistoryService.class.getName());
     private final PaymentHistoryRepository historyRepository;
-    private final AgencyCampaignService campaignService;
 
     private static final String PAYMENT_MSG = "Payment Detail request executed successfully";
     private static final String INVALID_STATUS = "Invalid Payment status provided";
@@ -112,20 +108,6 @@ public class PaymentHistoryService {
                         handleOnErrorResume(new AppException(AppError.massage(t.getMessage())), BAD_REQUEST.value()));
     }
 
-    @PreAuthorize(ADMIN_BRAND)
-    public Mono<AppResponse> getPaymentTotals(String token) {
-        log.info("Payment Total Aggregates Record");
-        return  campaignService.getCampaignBudget(token)
-                .flatMap(totalBudget -> historyRepository.getPaymentAggregate(PaymentAggregateTotal.class)
-                        .map(aggregatePayment -> BrandAggregatePaymentRecord.builder()
-                                .totalClientPaid(aggregatePayment.payee())
-                                .totalBudget(totalBudget)
-                                .totalAmountPaid(getOrDefault(aggregatePayment.paid()))
-                                .totalBalance(getOrDefault(aggregatePayment.outstanding()))
-                                .build())
-                ).map(paymentRecords -> AppUtil.buildAppResponse(paymentRecords, PAYMENT_MSG));
-    }
-
     public Mono<PaymentHistory> getPaymentHistory(String reference) {
         return historyRepository.findByReference(reference);
     }
@@ -136,10 +118,6 @@ public class PaymentHistoryService {
     private Pageable setPage(ReportSettings settings) {
         return PageRequest.of(settings.getPage(), settings.getSize(),
                 Sort.Direction.fromString(settings.getSortIn()), settings.getSortBy());
-    }
-
-    private BigDecimal getOrDefault(BigDecimal value) {
-        return Objects.isNull(value) ? BigDecimal.ZERO : value;
     }
 
     private StatusType parseStatus(String status) {

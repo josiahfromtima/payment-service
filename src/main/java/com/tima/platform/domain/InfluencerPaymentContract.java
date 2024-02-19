@@ -36,6 +36,7 @@ public class InfluencerPaymentContract implements Serializable, Persistable<Inte
     private String influencerName;
     private String campaignName;
     private String brandName;
+    private String mediaContract;
     private BigDecimal contractAmount;
     private BigDecimal balance;
     private String status;

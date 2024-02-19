@@ -2,10 +2,7 @@ package com.tima.platform.resource.payment.history;
 
 import com.tima.platform.config.AuthTokenConfig;
 import com.tima.platform.model.api.ApiResponse;
-import com.tima.platform.model.api.response.PaymentHistoryRecord;
-import com.tima.platform.model.api.response.PaymentMethodRecord;
 import com.tima.platform.service.PaymentHistoryService;
-import com.tima.platform.service.PaymentMethodService;
 import com.tima.platform.util.LoggerHelper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
@@ -35,15 +32,6 @@ public class PaymentHistoryResourceHandler {
     public Mono<ServerResponse> getAllPaymentStatus(ServerRequest request)  {
         log.info("Get Payment Statuses Requested", request.headers().firstHeader(X_FORWARD_FOR));
         return buildServerResponse(historyService.getPaymentStatus());
-    }
-
-    public Mono<ServerResponse> getPaymentAggregateDashboard(ServerRequest request)  {
-        Mono<JwtAuthenticationToken> jwtAuthToken = AuthTokenConfig.authenticatedToken(request);
-        log.info("Get Payment Aggregation Dashboard Requested", request.headers().firstHeader(X_FORWARD_FOR));
-        return jwtAuthToken
-                .map(ApiResponse::getToken)
-                .map(historyService::getPaymentTotals)
-                .flatMap(ApiResponse::buildServerResponse);
     }
 
     public Mono<ServerResponse> getPaymentHistories(ServerRequest request)  {

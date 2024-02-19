@@ -7,7 +7,8 @@ import org.springframework.data.repository.reactive.ReactiveCrudRepository;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
-import static com.tima.platform.repository.projection.NativeSql.AGGREGATE_STATEMENT;
+import java.time.Instant;
+
 import static com.tima.platform.repository.projection.NativeSql.CONTRACT_AGGREGATE_STATEMENT;
 
 /**
@@ -21,6 +22,11 @@ public interface InfluencerPaymentContractRepository
     Mono<InfluencerPaymentContract> findByContractId(String contactId);
     Flux<InfluencerPaymentContract> findAllBy(Pageable pageable);
     Flux<InfluencerPaymentContract> findByStatus(String status, Pageable pageable);
+    Flux<InfluencerPaymentContract> findByInfluencerPublicId(String publicId);
+    Flux<InfluencerPaymentContract> findByInfluencerPublicIdAndCreatedOnBetween(String publicId,
+                                                                                Instant start,
+                                                                                Instant end);
+
 
     @Query(CONTRACT_AGGREGATE_STATEMENT)
     <T> Mono<T> getContractPaymentAggregate(String id, Class<T> type);

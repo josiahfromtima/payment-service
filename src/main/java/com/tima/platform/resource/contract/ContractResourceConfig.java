@@ -21,6 +21,8 @@ public class ContractResourceConfig {
     public static final String API_V1_URL = "/v1";
     public static final String CONTRACT_BASE = API_V1_URL + "/contracts";
     public static final String CAMPAIGN_DASHBOARD = PAYMENT_BASE + "/campaign/dashboard";
+    public static final String INFLUENCER_DASHBOARD = PAYMENT_BASE + "/influencer/dashboard";
+    public static final String INFLUENCER_GRAPH = PAYMENT_BASE + "/influencer/graph";
     public static final String CONTRACT_BY_IDS = CONTRACT_BASE + "/{influencerId}/{campaignId}";
     public static final String CONTRACT_BY_ID = CONTRACT_BASE + "/{id}";
     public static final String CONTRACT_BY_STATUS = CONTRACT_BASE + "/status/{status}";
@@ -33,6 +35,8 @@ public class ContractResourceConfig {
                 .GET(CONTRACT_BY_IDS, accept(MediaType.APPLICATION_JSON), handler::getContractByIds)
                 .GET(CONTRACT_BY_ID, accept(MediaType.APPLICATION_JSON), handler::getContractById)
                 .GET(CAMPAIGN_DASHBOARD, accept(MediaType.APPLICATION_JSON), handler::getPaymentAggregateDashboard)
+                .GET(INFLUENCER_DASHBOARD, accept(MediaType.APPLICATION_JSON), handler::getInfluencerPaymentDashboard)
+                .GET(INFLUENCER_GRAPH, accept(MediaType.APPLICATION_JSON), handler::getInfluencerPaymentGraph)
                 .POST(CONTRACT_BASE, accept(MediaType.APPLICATION_JSON)
                         .and(contentType(MediaType.APPLICATION_JSON)), handler::addContract)
                 .PUT(CONTRACT_BASE, accept(MediaType.APPLICATION_JSON)

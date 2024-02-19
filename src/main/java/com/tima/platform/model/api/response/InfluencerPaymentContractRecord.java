@@ -7,6 +7,7 @@ import lombok.Builder;
 
 import java.math.BigDecimal;
 import java.time.Instant;
+import java.util.List;
 
 /**
  * @Author: Josiah Adetayo
@@ -25,6 +26,7 @@ public record InfluencerPaymentContractRecord(@NotNull(message = "Influencer pub
                                               String influencerName,
                                               String campaignName,
                                               String brandName,
+                                              List<MediaContract> mediaContract,
                                               @NotNull(message = "Contract Amount is required")
                                               @PositiveOrZero(message = "Negative AMount is not supported")
                                               BigDecimal contractAmount,

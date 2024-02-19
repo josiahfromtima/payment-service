@@ -10,6 +10,7 @@ import com.tima.platform.model.api.response.PaymentAggregateTotal;
 import com.tima.platform.model.constant.StatusType;
 import com.tima.platform.repository.InfluencerPaymentContractRepository;
 import com.tima.platform.service.helper.AgencyCampaignService;
+import com.tima.platform.service.helper.AgencyContractService;
 import com.tima.platform.util.AppError;
 import com.tima.platform.util.AppUtil;
 import com.tima.platform.util.LoggerHelper;
@@ -26,8 +27,7 @@ import java.math.BigDecimal;
 import java.util.Objects;
 
 import static com.tima.platform.exception.ApiErrorHandler.handleOnErrorResume;
-import static com.tima.platform.model.security.TimaAuthority.ADMIN;
-import static com.tima.platform.model.security.TimaAuthority.ADMIN_BRAND;
+import static com.tima.platform.model.security.TimaAuthority.*;
 import static org.springframework.http.HttpStatus.BAD_REQUEST;
 
 /**
@@ -41,6 +41,7 @@ public class InfluencerPaymentContractService {
     private final LoggerHelper log = LoggerHelper.newInstance(InfluencerPaymentContractService.class.getName());
     private final InfluencerPaymentContractRepository contractRepository;
     private final AgencyCampaignService campaignService;
+    private final AgencyContractService contractService;
 
     private static final String CONTRACT_MSG = "Contract request executed successfully";
     private static final String INVALID_STATUS = "Invalid Contract status provided";
@@ -129,6 +130,21 @@ public class InfluencerPaymentContractService {
                                 .build())
                 ).map(paymentRecords -> AppUtil.buildAppResponse(paymentRecords, CONTRACT_MSG));
     }
+
+    @PreAuthorize(ADMIN_INFLUENCER)
+    public Mono<AppResponse> getPaymentTotalsForInfluencer(String publicId) {
+        log.info("Payment Total Aggregates Record for Influencer ", publicId);
+        return  contractService.getInfluencerDashboard(publicId)
+                .map(paymentRecords -> AppUtil.buildAppResponse(paymentRecords, CONTRACT_MSG));
+    }
+
+    @PreAuthorize(ADMIN_INFLUENCER)
+    public Mono<AppResponse> getPaymentGraph(String publicId, int year) {
+        log.info("Payment Graph  Record for Influencer ", publicId);
+        return  contractService.getPaymentGraph(publicId, year)
+                .map(paymentRecords -> AppUtil.buildAppResponse(paymentRecords, CONTRACT_MSG));
+    }
+
 
     public Mono<InfluencerPaymentContract> getContact(String influencerId, String campaignId) {
         return contractRepository.findByInfluencerPublicIdAndCampaignPublicId(influencerId, campaignId)

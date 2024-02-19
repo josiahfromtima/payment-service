@@ -1,11 +1,16 @@
 package com.tima.platform.converter;
 
+import com.google.gson.reflect.TypeToken;
 import com.tima.platform.domain.InfluencerPaymentContract;
 import com.tima.platform.model.api.response.InfluencerPaymentContractRecord;
+import com.tima.platform.model.api.response.MediaContract;
 import com.tima.platform.model.constant.StatusType;
+import com.tima.platform.util.AppUtil;
 
 import java.util.List;
 import java.util.Objects;
+
+import static com.tima.platform.util.AppUtil.gsonInstance;
 
 /**
  * @Author: Josiah Adetayo
@@ -23,6 +28,7 @@ public class InfluencerPaymentContractConverter {
                 .influencerName(getOrDefault(dto.influencerName(), ""))
                 .campaignName(getOrDefault(dto.campaignName(), ""))
                 .brandName(getOrDefault(dto.brandName(), ""))
+                .mediaContract(getOrDefault(convertTo(dto.mediaContract()), "[]"))
                 .contractAmount(dto.contractAmount())
                 .balance(dto.contractAmount())
                 .status(getOrDefault(dto.status(), StatusType.PENDING.getType()))
@@ -38,6 +44,7 @@ public class InfluencerPaymentContractConverter {
                 .influencerName(entity.getInfluencerName())
                 .campaignName(entity.getCampaignName())
                 .brandName(entity.getBrandName())
+                .mediaContract(convertFrom(entity.getMediaContract()))
                 .contractAmount(entity.getContractAmount())
                 .balance(entity.getBalance())
                 .status(entity.getStatus())
@@ -64,5 +71,12 @@ public class InfluencerPaymentContractConverter {
             return t;
         }
         return (T) value;
+    }
+
+    private static String convertTo(List<MediaContract> value) {
+        return gsonInstance().toJson(value);
+    }
+    private static List<MediaContract> convertFrom(String value) {
+        return gsonInstance().fromJson(value, new TypeToken<List<MediaContract>>(){}.getType());
     }
 }

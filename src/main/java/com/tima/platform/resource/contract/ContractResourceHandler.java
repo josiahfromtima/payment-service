@@ -12,6 +12,10 @@ import org.springframework.web.reactive.function.server.ServerRequest;
 import org.springframework.web.reactive.function.server.ServerResponse;
 import reactor.core.publisher.Mono;
 
+import java.time.Instant;
+import java.time.Year;
+import java.time.temporal.ChronoField;
+
 import static com.tima.platform.model.api.ApiResponse.buildServerResponse;
 import static com.tima.platform.model.api.ApiResponse.reportSettings;
 
@@ -82,6 +86,27 @@ public class ContractResourceHandler {
         return jwtAuthToken
                 .map(ApiResponse::getTokenAndId)
                 .map(tokenId -> contractService.getPaymentTotals(tokenId.token(), tokenId.publicId()))
+                .flatMap(ApiResponse::buildServerResponse);
+    }
+
+    public Mono<ServerResponse> getInfluencerPaymentDashboard(ServerRequest request)  {
+        Mono<JwtAuthenticationToken> jwtAuthToken = AuthTokenConfig.authenticatedToken(request);
+        log.info("Get Influencer Payment Aggregation Dashboard Requested",
+                request.headers().firstHeader(X_FORWARD_FOR));
+        return jwtAuthToken
+                .map(ApiResponse::getPublicIdFromToken)
+                .map(contractService::getPaymentTotalsForInfluencer)
+                .flatMap(ApiResponse::buildServerResponse);
+    }
+
+    public Mono<ServerResponse> getInfluencerPaymentGraph(ServerRequest request)  {
+        Mono<JwtAuthenticationToken> jwtAuthToken = AuthTokenConfig.authenticatedToken(request);
+        int year = Integer.parseInt(request.queryParam("year").orElse(String.valueOf(Year.now())) );
+        log.info("Get Influencer Payment Graph Requested",
+                request.headers().firstHeader(X_FORWARD_FOR));
+        return jwtAuthToken
+                .map(ApiResponse::getPublicIdFromToken)
+                .map(id ->  contractService.getPaymentGraph(id, year))
                 .flatMap(ApiResponse::buildServerResponse);
     }
 }
