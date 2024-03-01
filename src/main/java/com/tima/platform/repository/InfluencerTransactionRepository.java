@@ -17,4 +17,6 @@ public interface InfluencerTransactionRepository extends ReactiveCrudRepository<
     Flux<InfluencerTransaction> findByBrandNameAndPublicId(String name, String id, Pageable pageable);
     Flux<InfluencerTransaction> findByPublicIdAndCreatedOnBefore(String id, Instant endDate);
     Flux<InfluencerTransaction> findByStatusAndPublicId(String status, String id, Pageable pageable);
+    Flux<InfluencerTransaction> findByCampaignNameContainingIgnoreCaseOrBrandNameContainingIgnoreCaseAndStatus(
+            String campaignName, String brandName, String status, Pageable pageable);
 }

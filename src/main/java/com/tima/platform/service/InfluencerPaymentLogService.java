@@ -39,7 +39,7 @@ public class InfluencerPaymentLogService {
     private final InfluencerTransactionRepository transactionRepository;
 
     private static final String PAYMENT_MSG = "Influencer Payment Transaction request executed successfully";
-    private static final String INVALID_STATUS = "Invalid Transaction status provided";
+    public static final String INVALID_STATUS = "Invalid Transaction status provided";
 
     @PreAuthorize(ADMIN_INFLUENCER)
     public Mono<AppResponse> getTransactions(String publicId, ReportSettings settings) {

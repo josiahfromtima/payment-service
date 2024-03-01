@@ -20,6 +20,7 @@ public interface InfluencerPaymentContractRepository
         extends ReactiveCrudRepository<InfluencerPaymentContract, Integer> {
     Mono<InfluencerPaymentContract> findByInfluencerPublicIdAndCampaignPublicId(String influencerId, String campaignId);
     Mono<InfluencerPaymentContract> findByContractId(String contactId);
+    Flux<InfluencerPaymentContract> findByCampaignPublicId(String campaignId);
     Flux<InfluencerPaymentContract> findAllBy(Pageable pageable);
     Flux<InfluencerPaymentContract> findByStatus(String status, Pageable pageable);
     Flux<InfluencerPaymentContract> findByInfluencerPublicId(String publicId);

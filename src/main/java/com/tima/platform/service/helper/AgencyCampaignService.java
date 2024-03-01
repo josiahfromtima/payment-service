@@ -2,7 +2,7 @@ package com.tima.platform.service.helper;
 
 import com.tima.platform.config.client.HttpConnectorService;
 import com.tima.platform.model.api.AppResponse;
-import com.tima.platform.service.PaymentHistoryService;
+import com.tima.platform.model.api.response.campaign.CampaignRecord;
 import com.tima.platform.util.AppUtil;
 import com.tima.platform.util.LoggerHelper;
 import lombok.RequiredArgsConstructor;
@@ -31,12 +31,22 @@ public class AgencyCampaignService {
     @Value("${agency.campaign.budget.url}")
     private String campaignBudgetUrl;
 
+    @Value("${agency.campaign.url}")
+    private String campaignUrl;
+
     public Mono<BigDecimal> getCampaignBudget(String token) {
         log.info("Getting Budget from ", campaignBudgetUrl);
         return connectorService.get(campaignBudgetUrl, headers(token), String.class)
                 .map(s -> gson(s, AppResponse.class))
                 .flatMap(appResponse -> json(appResponse.getData()))
                 .map(s -> gson(s, BigDecimal.class));
+    }
+    public Mono<CampaignRecord> getCampaignById(String publicId, String token) {
+        log.info("Getting Campaign from ", campaignUrl);
+        return connectorService.get(String.format(campaignUrl, publicId), headers(token), String.class)
+                .map(s -> gson(s, AppResponse.class))
+                .flatMap(appResponse -> json(appResponse.getData()))
+                .map(s -> gson(s, CampaignRecord.class));
     }
 
     private Map<String, String> headers(String token) {
